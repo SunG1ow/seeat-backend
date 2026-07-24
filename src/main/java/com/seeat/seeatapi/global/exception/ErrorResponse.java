@@ -1,35 +1,47 @@
 package com.seeat.seeatapi.global.exception;
 
-import lombok.Builder;
-import lombok.Getter;
 import java.time.OffsetDateTime;
 
-@Getter
-@Builder
 public class ErrorResponse {
-    private boolean success;
-    private String timestamp;
-    private int status;
-    private String code;
-    private String message;
 
-    public static ErrorResponse of(ErrorCode errorCode) {
-        return ErrorResponse.builder()
-                .success(false)
-                .timestamp(OffsetDateTime.now().toString())
-                .status(errorCode.getHttpStatus().value())
-                .code(errorCode.getCode())
-                .message(errorCode.getMessage())
-                .build();
+    private final boolean success = false;
+    private final OffsetDateTime timestamp;
+    private final int status;
+    private final String code;
+    private final String message;
+
+    private ErrorResponse(int status, String code, String message) {
+        this.timestamp = OffsetDateTime.now();
+        this.status = status;
+        this.code = code;
+        this.message = message;
     }
 
-    public static ErrorResponse of(ErrorCode errorCode, String customMessage) {
-        return ErrorResponse.builder()
-                .success(false)
-                .timestamp(OffsetDateTime.now().toString())
-                .status(errorCode.getHttpStatus().value())
-                .code(errorCode.getCode())
-                .message(customMessage)
-                .build();
+    public static ErrorResponse of(ErrorCode errorCode) {
+        return new ErrorResponse(errorCode.getStatus().value(), errorCode.name(), errorCode.getMessage());
+    }
+
+    public static ErrorResponse of(ErrorCode errorCode, String message) {
+        return new ErrorResponse(errorCode.getStatus().value(), errorCode.name(), message);
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public OffsetDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
     }
 }
