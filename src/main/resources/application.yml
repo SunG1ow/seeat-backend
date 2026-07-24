@@ -1,6 +1,24 @@
 spring:
   application:
     name: seeat-api
+  profiles:
+    active: local
 
 server:
-  part: 8080
+  port: 8081
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.seeat.seeatapi: DEBUG
+    org.hibernate.SQL: DEBUG
