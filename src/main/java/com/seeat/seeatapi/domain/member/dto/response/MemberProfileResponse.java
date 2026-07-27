@@ -9,14 +9,4 @@ public record MemberProfileResponse(
         String nickname,
         String phoneNumber,
         String role
-) {
-    public static MemberProfileResponse from(Member member) {
-        return new MemberProfileResponse(
-                member.getUserId(),
-                member.getEmail(),
-                member.getNickname(),
-                member.getPhoneNumber(),
-                member.getRole().name()
-        );
-    }
-}
+) {}
