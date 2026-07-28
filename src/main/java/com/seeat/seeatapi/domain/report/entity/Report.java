@@ -3,6 +3,8 @@ package com.seeat.seeatapi.domain.report.entity;
 import com.seeat.seeatapi.domain.member.entity.Member;
 import com.seeat.seeatapi.domain.product.entity.Product;
 import com.seeat.seeatapi.global.common.BaseEntity;
+import com.seeat.seeatapi.global.exception.BusinessException;
+import com.seeat.seeatapi.global.exception.ErrorCode;
 import jakarta.persistence.*;
 
 @Entity
@@ -50,14 +52,22 @@ public class Report extends BaseEntity {
         this.status = ReportStatus.PENDING;
     }
 
-    // 6-1 회원 신고 (targetType=USER → reported_user_id)
-    public static Report reportUser(Member reportedUser, Member reporter, String reason) {
-        return new Report(ReportTargetType.USER, reportedUser, null, reporter, reason);
+    // 6-1 회원 신고
+    public static Report forUser(Member reporter, Member targetMember, String reason) {
+        return new Report(ReportTargetType.USER, targetMember, null, reporter, reason);
     }
 
-    // 6-1 상품 신고 (targetType=PRODUCT → reported_product_id)
-    public static Report reportProduct(Product reportedProduct, Member reporter, String reason) {
-        return new Report(ReportTargetType.PRODUCT, null, reportedProduct, reporter, reason);
+    // 6-1 상품 신고
+    public static Report forProduct(Member reporter, Product targetProduct, String reason) {
+        return new Report(ReportTargetType.PRODUCT, null, targetProduct, reporter, reason);
+    }
+
+    // 6-2 신고 처리 (관리자)
+    public void process(String newStatus) {
+        if (this.status != ReportStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "이미 처리된 신고입니다.");
+        }
+        this.status = ReportStatus.valueOf(newStatus);
     }
 
     public Long getReportId() {

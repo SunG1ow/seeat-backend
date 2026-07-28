@@ -78,6 +78,14 @@ public class Order extends BaseEntity {
         this.orderStatus = OrderStatus.CANCELLED;
     }
 
+    // 결제 세션(10분) 만료로 인한 시스템 자동 취소
+    public void expireByTimeout() {
+        if (this.orderStatus != OrderStatus.PAYMENT_PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_STATUS_TRANSITION, "이미 결제 완료되었거나 처리된 주문입니다.");
+        }
+        this.orderStatus = OrderStatus.CANCELLED;
+    }
+
     // 4-8 관리자 취소(환불): 결제완료~준비중까지만 가능
     public void cancelByAdmin() {
         if (!ADMIN_CANCELLABLE_STATUSES.contains(this.orderStatus)) {

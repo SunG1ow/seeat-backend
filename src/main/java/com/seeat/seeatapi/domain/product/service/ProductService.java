@@ -7,6 +7,7 @@ import com.seeat.seeatapi.domain.product.dto.request.ProductUpdateRequest;
 import com.seeat.seeatapi.domain.product.dto.response.*;
 import com.seeat.seeatapi.domain.product.entity.*;
 import com.seeat.seeatapi.domain.product.repository.*;
+import com.seeat.seeatapi.global.common.FileStorageService;
 import com.seeat.seeatapi.global.exception.BusinessException;
 import com.seeat.seeatapi.global.exception.ErrorCode;
 import com.seeat.seeatapi.global.response.PageResponse;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -177,7 +179,7 @@ public class ProductService {
     }
 
     private List<String> uploadImages(Product product, List<MultipartFile> images, int startSortOrder) {
-        List<String> urls = new java.util.ArrayList<>();
+        List<String> urls = new ArrayList<>();
         for (int i = 0; i < images.size(); i++) {
             String url = fileStorageService.upload(images.get(i), "products");
             productImageRepository.save(new ProductImage(product, url, startSortOrder + i));

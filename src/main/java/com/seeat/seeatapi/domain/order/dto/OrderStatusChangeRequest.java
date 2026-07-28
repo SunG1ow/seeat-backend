@@ -1,4 +1,4 @@
-package com.seeat.seeatapi.domain.order.dto.request;
+package com.seeat.seeatapi.domain.order.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
