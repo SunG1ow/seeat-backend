@@ -1,7 +1,7 @@
 package com.seeat.seeatapi.domain.order.controller;
 
 import com.seeat.seeatapi.domain.order.dto.request.OrderCancelRequest;
-import com.seeat.seeatapi.domain.order.dto.request.OrderStatusChangeRequest;
+import com.seeat.seeatapi.domain.order.dto.OrderStatusChangeRequest;
 import com.seeat.seeatapi.domain.order.dto.response.OrderRefundResponse;
 import com.seeat.seeatapi.domain.order.dto.response.OrderStatusChangeResponse;
 import com.seeat.seeatapi.domain.order.service.OrderService;
