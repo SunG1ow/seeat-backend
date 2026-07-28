@@ -1,4 +1,4 @@
-package com.seeat.seeatapi.domain.product.service;
+package com.seeat.seeatapi.global.common;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
