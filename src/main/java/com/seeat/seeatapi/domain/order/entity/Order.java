@@ -95,7 +95,7 @@ public class Order extends BaseEntity {
     }
 
     public boolean isOwnedBy(Long memberId) {
-        return this.buyer.getUserId().equals(memberId);
+        return java.util.Objects.equals(this.buyer.getUserId(), memberId);
     }
 
     public Long getOrderId() {

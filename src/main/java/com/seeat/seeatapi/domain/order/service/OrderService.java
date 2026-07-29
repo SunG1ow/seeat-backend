@@ -4,7 +4,7 @@ import com.seeat.seeatapi.domain.member.entity.DeliveryAddress;
 import com.seeat.seeatapi.domain.member.repository.DeliveryAddressRepository;
 import com.seeat.seeatapi.domain.order.dto.request.OrderCancelRequest;
 import com.seeat.seeatapi.domain.order.dto.request.OrderCreateRequest;
-import com.seeat.seeatapi.domain.order.dto.OrderStatusChangeRequest;
+import com.seeat.seeatapi.domain.order.dto.request.OrderStatusChangeRequest;
 import com.seeat.seeatapi.domain.order.dto.response.*;
 import com.seeat.seeatapi.domain.order.entity.Order;
 import com.seeat.seeatapi.domain.order.entity.OrderItem;
