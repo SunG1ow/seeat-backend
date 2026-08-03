@@ -4,6 +4,7 @@ import com.seeat.seeatapi.domain.member.dto.MemberMapper;
 import com.seeat.seeatapi.domain.member.dto.request.*;
 import com.seeat.seeatapi.domain.member.dto.response.AddressResponse;
 import com.seeat.seeatapi.domain.member.dto.response.MemberProfileResponse;
+import com.seeat.seeatapi.domain.member.dto.response.WithdrawResponse;
 import com.seeat.seeatapi.domain.member.entity.DeliveryAddress;
 import com.seeat.seeatapi.domain.member.entity.Member;
 import com.seeat.seeatapi.domain.member.repository.DeliveryAddressRepository;
@@ -13,6 +14,7 @@ import com.seeat.seeatapi.global.exception.ErrorCode;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -109,19 +111,15 @@ public class MemberService {
 
     // 5-4 회원 탈퇴
     @Transactional
-    public void withdraw(Long userId, WithdrawRequest request) {
+    public WithdrawResponse withdraw(Long userId, WithdrawRequest request) {
         Member member = findMemberOrThrow(userId);
 
         if (!passwordEncoder.matches(request.password(), member.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD);
         }
 
-        // TODO: 24단계 이후 미완료 주문/정산 존재 여부 검증 추가
-        // (PENDING_ORDER_EXISTS, PENDING_SETTLEMENT_EXISTS)
-        // -> OrderRepository, SettlementRepository가 Service 계층에서 참조 가능해지는
-        //    시점(3~4그룹 Service 완성 후)에 이 메서드에 검증 로직을 추가할 예정입니다.
-
         member.withdraw();
+        return WithdrawResponse.from(member);
     }
 
     private Member findMemberOrThrow(Long userId) {
