@@ -20,6 +20,8 @@ public class SecurityConfig {
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
             "/api/v1/admin/login",
+            "/api/v1/admin/otp/setup",
+            "/api/v1/admin/otp/verify",
             "/api/v1/products/categories",
             "/api/v1/products/search",
             "/swagger-ui/**",
