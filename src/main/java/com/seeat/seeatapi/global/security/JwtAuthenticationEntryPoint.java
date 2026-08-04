@@ -25,8 +25,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setContentType("application/json;charset=UTF-8");
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 
-        // TODO: ErrorCode.UNAUTHORIZED 를 실제 enum 상수 이름으로 교체하세요
-        ErrorResponse errorResponse = ErrorResponse.of(ErrorCode.UNAUTHORIZED);
+        ErrorCode errorCode = (ErrorCode) request.getAttribute("errorCode");
+        if (errorCode == null) {
+            errorCode = ErrorCode.UNAUTHORIZED;
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.of(errorCode);
 
         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
     }
