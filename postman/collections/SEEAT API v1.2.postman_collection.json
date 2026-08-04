@@ -1,0 +1,1916 @@
+{
+  "info": {
+    "_postman_id": "6a659ece-35de-490e-9501-6b0c13040254",
+    "name": "SEEAT API v1.2",
+    "description": "SEEAT API 명세서 v1.1.4(v2.0, DB 스키마 V2 최종본 기준) 반영. 백엔드 구현 전에는 응답을 받지 못하지만(Could not get response), Body/Tests 내용으로 스펙 리뷰 및 테스트케이스 정의 용도로 사용.\n\nv1.1.3 -> v1.1.4 반영 내역: 관리자 로그인 adminId->email, 주문/결제 흐름을 체크아웃+PG콜백 방식에서 주문서작성->결제시도/승인 2단계로 원복, 상품문의(FAQ) 2-4 복원, 수산물 시세(8장) 스코프 제외로 삭제, 상품등록에 weight/weightUnit/isMandatoryAuction 필드 추가.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56842577",
+    "_collection_link": "https://go.postman.co/collection/56842577-6a659ece-35de-490e-9501-6b0c13040254?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "1. 인증 / 회원",
+      "item": [
+        {
+          "name": "1-1. 구매자/판매자 회원가입",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = Date.now();",
+                  "pm.environment.set(\"tempBuyerEmail\", `temp_buyer_${ts}@example.com`);"
+                ]
+              },
+              "listen": "prerequest"
+            },
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"회원가입 응답 필드 확인\", () => {",
+                  "  pm.expect(res.success).to.be.true;",
+                  "  pm.expect(res.data).to.have.property(\"userId\");",
+                  "  pm.expect(res.data).to.have.property(\"email\");",
+                  "  pm.expect(res.data.role).to.eql(\"BUYER\");",
+                  "});",
+                  "",
+                  "pm.environment.set(\"userId\", res.data.userId);"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{tempBuyerEmail}}\",\n  \"password\": \"password1234\",\n  \"role\": \"BUYER\",\n  \"nickname\": \"임시테스트계정\",\n  \"phoneNumber\": \"010-1234-5678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/signup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "signup"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1-2a. 구매자 로그인 (자체 생성 테스트 계정)",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = Date.now();",
+                  "const email = `test_buyer_${ts}@example.com`;",
+                  "pm.environment.set(\"buyerEmail\", email);",
+                  "",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get(\"baseUrl\") + \"/api/v1/auth/signup\",",
+                  "  method: \"POST\",",
+                  "  header: { \"Content-Type\": \"application/json\" },",
+                  "  body: {",
+                  "    mode: \"raw\",",
+                  "    raw: JSON.stringify({",
+                  "      email: email,",
+                  "      password: pm.environment.get(\"testPassword\"),",
+                  "      role: \"BUYER\",",
+                  "      nickname: \"테스트구매자\",",
+                  "      phoneNumber: \"010-0000-0001\"",
+                  "    })",
+                  "  }",
+                  "}, function (err, res) {",
+                  "  // 회원가입 결과와 무관하게 이어서 로그인 진행 (실패해도 에러 무시)",
+                  "});"
+                ]
+              },
+              "listen": "prerequest"
+            },
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test(\"토큰 응답 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"accessToken\");",
+                  "  pm.expect(res.data).to.have.property(\"refreshToken\");",
+                  "});",
+                  "pm.environment.set(\"buyerAccessToken\", res.data.accessToken);",
+                  "pm.environment.set(\"buyerRefreshToken\", res.data.refreshToken);"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{buyerEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1-3. 관리자 계정 로그인",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test(\"관리자 토큰 및 role 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"accessToken\");",
+                  "  pm.expect(res.data.role).to.eql(\"ADMIN\");",
+                  "});",
+                  "pm.environment.set(\"adminAccessToken\", res.data.accessToken);"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"otpCode\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1-4. 판매자 사업자 인증",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get(\"sellerAccessToken\")) {",
+                  "  const ts = Date.now();",
+                  "  const email = `test_seller_${ts}@example.com`;",
+                  "  const password = pm.environment.get(\"testPassword\");",
+                  "",
+                  "  pm.sendRequest({",
+                  "    url: pm.environment.get(\"baseUrl\") + \"/api/v1/auth/signup\",",
+                  "    method: \"POST\",",
+                  "    header: { \"Content-Type\": \"application/json\" },",
+                  "    body: {",
+                  "      mode: \"raw\",",
+                  "      raw: JSON.stringify({",
+                  "        email: email,",
+                  "        password: password,",
+                  "        role: \"SELLER\",",
+                  "        nickname: \"테스트판매자(1-4용)\",",
+                  "        phoneNumber: \"010-0000-0003\"",
+                  "      })",
+                  "    }",
+                  "  }, function (signupErr, signupRes) {",
+                  "    pm.sendRequest({",
+                  "      url: pm.environment.get(\"baseUrl\") + \"/api/v1/auth/login\",",
+                  "      method: \"POST\",",
+                  "      header: { \"Content-Type\": \"application/json\" },",
+                  "      body: {",
+                  "        mode: \"raw\",",
+                  "        raw: JSON.stringify({ email: email, password: password })",
+                  "      }",
+                  "    }, function (loginErr, loginRes) {",
+                  "      if (!loginErr && loginRes) {",
+                  "        const body = loginRes.json();",
+                  "        if (body && body.data && body.data.accessToken) {",
+                  "          pm.environment.set(\"sellerAccessToken\", body.data.accessToken);",
+                  "        }",
+                  "      }",
+                  "    });",
+                  "  });",
+                  "}",
+                  "",
+                  "// 매 실행마다 새로운 사업자등록번호 생성 (UNIQUE 제약 충돌 방지)",
+                  "const randomDigits = Math.floor(1000000000 + Math.random() * 9000000000).toString();",
+                  "pm.environment.set(\"bizRegNumber\", randomDigits);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"인증 완료 상태 확인\", () => {",
+                  "  pm.expect(res.data.verified).to.be.true;",
+                  "  pm.expect(res.data.authStatus).to.eql(\"VERIFIED\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"businessRegistrationNumber\": \"{{bizRegNumber}}\",\n  \"representativeName\": \"홍길동\",\n  \"openingDate\": \"20200101\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/verify-business",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "verify-business"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1-2b. 판매자 로그인 (자체 생성 테스트 계정)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ts = Date.now();",
+                  "const email = `test_seller_${ts}@example.com`;",
+                  "pm.environment.set(\"sellerEmail\", email);",
+                  "",
+                  "pm.sendRequest({",
+                  "  url: pm.environment.get(\"baseUrl\") + \"/api/v1/auth/signup\",",
+                  "  method: \"POST\",",
+                  "  header: { \"Content-Type\": \"application/json\" },",
+                  "  body: {",
+                  "    mode: \"raw\",",
+                  "    raw: JSON.stringify({",
+                  "      email: email,",
+                  "      password: pm.environment.get(\"testPassword\"),",
+                  "      role: \"SELLER\",",
+                  "      nickname: \"테스트판매자\",",
+                  "      phoneNumber: \"010-0000-0002\"",
+                  "    })",
+                  "  }",
+                  "}, function (err, res) {",
+                  "  // role=SELLER로 바로 가입되므로 사업자인증(1-4) 없이도 SELLER 권한 토큰 발급됨",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test(\"판매자 토큰 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"accessToken\");",
+                  "});",
+                  "pm.environment.set(\"sellerAccessToken\", res.data.accessToken);",
+                  "pm.environment.set(\"sellerRefreshToken\", res.data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{sellerEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "1-1b. 임시계정 로그인 (탈퇴 테스트용)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test(\"임시계정 토큰 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"accessToken\");",
+                  "});",
+                  "pm.environment.set(\"tempAccessToken\", res.data.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{tempBuyerEmail}}\",\n  \"password\": \"password1234\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. 상품",
+      "item": [
+        {
+          "name": "2-4. 상품 문의(FAQ)",
+          "item": [
+            {
+              "name": "2-4a. 상품 문의 등록",
+              "event": [
+                {
+                  "script": {
+                    "exec": [
+                      "pm.test(\"생성 성공(2xx)\", () => {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  },
+                  "listen": "test"
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{buyerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"냉동 상태로 오나요?\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/products/{{productId}}/faqs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "products",
+                    "{{productId}}",
+                    "faqs"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2-4b. 상품 문의 조회",
+              "event": [
+                {
+                  "script": {
+                    "exec": [
+                      "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                      "",
+                      "const res = pm.response.json();",
+                      "pm.test(\"문의 목록 구조 확인\", () => {",
+                      "  pm.expect(res.content).to.be.an(\"array\");",
+                      "  if (res.content.length) pm.expect(res.content[0]).to.have.property(\"faqId\");",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  },
+                  "listen": "test"
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{buyerAccessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/products/{{productId}}/faqs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "products",
+                    "{{productId}}",
+                    "faqs"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "2-1. 수산물 상품 등록",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"상품 등록 응답 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"productId\");",
+                  "  pm.expect(res.data.status).to.eql(\"PENDING_REVIEW\");",
+                  "});",
+                  "",
+                  "pm.environment.set(\"productId\", res.data.productId); // 이후 요청들이 실제 생성된 상품으로 동작"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "type": "text",
+                  "value": "{{categoryId}}",
+                  "key": "categoryId"
+                },
+                {
+                  "type": "text",
+                  "value": "테스트 활광어",
+                  "key": "name"
+                },
+                {
+                  "type": "text",
+                  "value": "제주",
+                  "key": "origin"
+                },
+                {
+                  "type": "text",
+                  "value": "냉장",
+                  "key": "storageType"
+                },
+                {
+                  "type": "text",
+                  "value": "1.5",
+                  "key": "weight"
+                },
+                {
+                  "type": "text",
+                  "value": "kg",
+                  "key": "weightUnit"
+                },
+                {
+                  "type": "text",
+                  "value": "false",
+                  "key": "isMandatoryAuction"
+                },
+                {
+                  "type": "text",
+                  "value": "15000",
+                  "key": "price"
+                },
+                {
+                  "type": "text",
+                  "value": "50",
+                  "key": "stockQuantity"
+                },
+                {
+                  "type": "file",
+                  "key": "images",
+                  "src": "C:\\Users\\ChoSB\\Desktop\\Develop\\Seeat\\postman-test-assets\\sample-product.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2-2. 수산물 분류 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"카테고리 트리 구조 확인\", () => {",
+                  "  pm.expect(res.data).to.be.an(\"array\");",
+                  "  if (res.data.length) pm.expect(res.data[0]).to.have.property(\"children\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2-3. 필터 및 정렬 검색",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"페이지네이션 형식 확인\", () => {",
+                  "  pm.expect(res.content).to.be.an(\"array\");",
+                  "  pm.expect(res.page).to.have.property(\"totalElements\");",
+                  "});"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products/search?category=&origin=&priceMin=&priceMax=&storageType=&sort=LATEST&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "origin",
+                  "value": ""
+                },
+                {
+                  "key": "priceMin",
+                  "value": ""
+                },
+                {
+                  "key": "priceMax",
+                  "value": ""
+                },
+                {
+                  "key": "storageType",
+                  "value": ""
+                },
+                {
+                  "key": "sort",
+                  "value": "LATEST"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. 장바구니",
+      "item": [
+        {
+          "name": "3-1. 장바구니 조회",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"장바구니 구조 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"cartId\");",
+                  "  pm.expect(res.data.items).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3-2. 장바구니 상품 추가",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"담기 결과 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"cartProductId\");",
+                  "  pm.expect(res.data.productId).to.eql(Number(pm.environment.get(\"productId\")));",
+                  "});",
+                  "",
+                  "pm.environment.set(\"cartProductId\", res.data.cartProductId);"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3-3. 장바구니 상품 삭제",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"삭제 응답 확인\", () => {",
+                  "  pm.expect(res.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/{{cartProductId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cart",
+                "items",
+                "{{cartProductId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. 주문 / 결제 / 배송",
+      "item": [
+        {
+          "name": "4-1. 주문서 작성",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"주문 생성 확인\", () => {",
+                  "  pm.expect(res.data.orderStatus).to.eql(\"PAYMENT_PENDING\");",
+                  "  pm.expect(res.data).to.have.property(\"orderId\");",
+                  "  pm.expect(res.data).to.have.property(\"totalAmount\");",
+                  "});",
+                  "",
+                  "pm.environment.set(\"orderId\", res.data.orderId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": {{productId}},\n      \"quantity\": 2\n    }\n  ],\n  \"addressId\": {{addressId}},\n  \"requestMessage\": \"부재 시 경비실에 맡겨주세요\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-2. 결제 시도 / 승인",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"결제 완료 확인\", () => {",
+                  "  pm.expect(res.data.orderStatus).to.eql(\"PAYMENT_COMPLETED\");",
+                  "  pm.expect(res.data).to.have.property(\"paymentId\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CARD\",\n  \"pgTransactionId\": \"tx_{{$timestamp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-3. 주문 상태 실시간 변경 (관리자)",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"상태 변경 확인\", () => {",
+                  "  pm.expect(res.data.status).to.eql(\"SHIPPING\"); // 요청 바디 status와 동일한 값으로 맞추기",
+                  "  pm.expect(res.data).to.have.property(\"notifiedAt\");",
+                  "});"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"SHIPPING\",\n  \"carrier\": \"CJ대한통운\",\n  \"trackingNumber\": \"123456789012\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-4. 주문 상태 이력 조회",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"이력 배열 확인\", () => {",
+                  "  pm.expect(res.data).to.be.an(\"array\");",
+                  "  if (res.data.length) pm.expect(res.data[0]).to.have.property(\"statusValue\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/{{orderId}}/status-history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orders",
+                "{{orderId}}",
+                "status-history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-5. 사용자 구매 내역 조회",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"구매내역 페이지 확인\", () => {",
+                  "  pm.expect(res.content).to.be.an(\"array\");",
+                  "  pm.expect(res.page).to.have.property(\"totalPages\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/orders?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "4-6. 주문 내역 및 배송 추적",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"배송 정보 확인\", () => {",
+                  "  pm.expect(res.content).to.be.an(\"array\");",
+                  "  if (res.content.length) pm.expect(res.content[0]).to.have.property(\"trackingNumber\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/delivery?startDate=2026-07-01&endDate=2026-07-24&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "delivery"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-07-24"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. 사용자",
+      "item": [
+        {
+          "name": "5-1a. 프로필 조회",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"프로필 필드 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"userId\");",
+                  "  pm.expect(res.data).to.have.property(\"email\");",
+                  "  pm.expect(res.data).to.have.property(\"nickname\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-1b. 프로필 수정",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"수정된 닉네임 반영 확인\", () => {",
+                  "  pm.expect(res.data).to.have.property(\"nickname\");",
+                  "  // 필요하면 아래처럼 요청 바디 값과 비교",
+                  "  // pm.expect(res.data.nickname).to.eql(\"바뀵닉네임\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": []
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-2a. 배송지 목록 조회",
+          "event": [
+            {
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"배송지 목록이 배열인지 확인\", () => {",
+                  "  pm.expect(res.data ?? res.content).to.be.an(\"array\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "addresses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-2b. 배송지 추가",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"생성 성공(2xx)\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "",
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.addressId) {",
+                  "  pm.environment.set(\"addressId\", res.data.addressId);",
+                  "}"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alias\": \"집\",\n  \"receiverName\": \"홍길동\",\n  \"receiverPhone\": \"010-1234-5678\",\n  \"address\": \"서울시 강남구 테헤란로 1\",\n  \"isDefault\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/addresses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "addresses"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-2c. 배송지 삭제",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/addresses/{{addressId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "addresses",
+                "{{addressId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-3. 알림 목록 조회",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"알림 목록 확인\", () => {",
+                  "  pm.expect(res.content).to.be.an(\"array\");",
+                  "  if (res.content.length) pm.expect(res.content[0]).to.have.property(\"isRead\");",
+                  "});"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me/notifications?type=&isRead=&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": ""
+                },
+                {
+                  "key": "isRead",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "5-4. 회원 탈퇴",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const res = pm.response.json();",
+                  "pm.test(\"탈퇴 처리 확인\", () => {",
+                  "  pm.expect(res.success).to.be.true;",
+                  "});"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tempAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"password1234\",\n  \"reason\": \"서비스 이용 안함\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. 신고",
+      "item": [
+        {
+          "name": "6-1. 신고 등록",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"신고 접수 확인\", () => {",
+                  "  pm.expect(res.data.status).to.eql(\"PENDING\");",
+                  "  pm.expect(res.data).to.have.property(\"reportId\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{buyerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"targetType\": \"PRODUCT\",\n  \"targetId\": {{productId}},\n  \"reason\": \"원산지 표시 의심\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reports",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reports"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. 판매자 전용",
+      "item": [
+        {
+          "name": "7-1. 상품 및 매출관리 대시보드",
+          "event": [
+            {
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"대시보드 구조 확인\", () => {",
+                  "  pm.expect(res.data.products).to.have.property(\"content\");",
+                  "  pm.expect(res.data.salesSummary).to.have.property(\"totalSalesAmount\");",
+                  "});"
+                ]
+              },
+              "listen": "test"
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seller/dashboard?startDate=&endDate=&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "seller",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": ""
+                },
+                {
+                  "key": "endDate",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "7-2. 정산 내역 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const res = pm.response.json();",
+                  "pm.test(\"정산 내역 확인\", () => {",
+                  "  pm.expect(res.data).to.be.an(\"array\");",
+                  "  if (res.data.length) pm.expect(res.data[0]).to.have.property(\"settlementId\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sellerAccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/seller/settlements?status=&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "seller",
+                "settlements"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
