@@ -17,8 +17,8 @@ public class CorsConfig {
 
         config.setAllowedOrigins(List.of(
                 "http://localhost:3000",   // 프론트 로컬 개발 서버 (예: React/Next.js)
-                "http://localhost:5173"    // Vite 기본 포트도 쓰는 경우 대비
-                // "https://your-deployed-frontend.com" // 배포 후 추가
+                "http://localhost:5173",    // Vite 기본 포트도 쓰는 경우 대비
+                "https://seeat-frontend.vercel.app/" // 배포 후 추가
         ));
 
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
