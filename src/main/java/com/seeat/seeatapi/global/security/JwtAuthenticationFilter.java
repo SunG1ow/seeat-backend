@@ -42,7 +42,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     Long userId = jwtTokenProvider.getUserId(token);
                     String role = jwtTokenProvider.getRole(token);
 
-                    var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                    // [수정] JwtTokenProvider.createToken()이 이미 "ROLE_" 접두사를 붙여서
+                    //         토큰에 저장하므로, 여기서 다시 붙이면 "ROLE_ROLE_SELLER"처럼
+                    //         이중 접두사가 되어 SecurityConfig의 hasRole()과 절대 일치하지 않던 버그 수정
+                    var authorities = List.of(new SimpleGrantedAuthority(role));
                     var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
