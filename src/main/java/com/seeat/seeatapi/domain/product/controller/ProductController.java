@@ -42,15 +42,15 @@ public class ProductController {
     }
 
     // 2-1 수산물 상품 등록
-    // [수정] @ParameterObject 추가: Swagger 문서에서 request를 JSON 파트 하나로 잘못 표시하던 문제 해결.
-    //         실제 바인딩은 여전히 개별 form 필드(categoryId, name, origin 등)로 이루어짐(동작 변경 없음).
+    // [수정] images를 @RequestPart로 변경: @ParameterObject 적용 후 springdoc이 images 필드를
+    //         스키마에서 누락시키던 문제 해결. 실제 바인딩 동작은 동일(멀티파트 파일 파트).
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductCreateResponse>> createProduct(
             @CurrentMemberId Long sellerId,
             @Valid @ParameterObject @ModelAttribute ProductCreateRequest request,
             @Parameter(description = "상품 이미지 목록 (최대 5장)",
                     array = @ArraySchema(schema = @Schema(type = "string", format = "binary")))
-            @RequestParam List<MultipartFile> images
+            @RequestPart("images") List<MultipartFile> images
     ) {
         Member seller = memberRepository.findById(sellerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -145,7 +145,7 @@ public class ProductController {
             @PathVariable Long productId,
             @Parameter(description = "추가할 상품 이미지 목록",
                     array = @ArraySchema(schema = @Schema(type = "string", format = "binary")))
-            @RequestParam List<MultipartFile> images
+            @RequestPart("images") List<MultipartFile> images
     ) {
         ProductImageResponse response = productService.addImages(sellerId, productId, images);
         return ResponseEntity.status(HttpStatus.CREATED)
