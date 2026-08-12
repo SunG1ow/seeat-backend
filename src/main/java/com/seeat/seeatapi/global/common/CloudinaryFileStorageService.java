@@ -39,8 +39,6 @@ public class CloudinaryFileStorageService implements FileStorageService {
 
             return (String) result.get("secure_url");
         } catch (Exception e) {
-            // Cloudinary SDK는 IOException 외에도 com.cloudinary.api.exceptions.* 계열의
-            // checked exception을 던질 수 있어 Exception으로 폭넓게 처리
             throw new BusinessException(ErrorCode.INVALID_REQUEST, "이미지 업로드에 실패했습니다: " + e.getMessage());
         }
     }
