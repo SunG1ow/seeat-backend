@@ -7,6 +7,7 @@ import com.seeat.seeatapi.global.exception.ErrorCode;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product")
@@ -49,6 +50,12 @@ public class Product extends BaseEntity {
     @Column(name = "stock_quantity", nullable = false)
     private int stockQuantity;
 
+    @Column(name = "auction_deadline")
+    private LocalDateTime auctionDeadline; // [신규] 위판 마감 시각
+
+    @Column(columnDefinition = "TEXT")
+    private String description; // [신규] 상품 상세 설명
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ProductStatus status;
@@ -56,10 +63,19 @@ public class Product extends BaseEntity {
     protected Product() {
     }
 
-    // 2-1 상품 등록
+    // 기존 테스트 코드 호환성을 위한 오버로딩 생성자 (10개 파라미터)
     public Product(Member seller, Category category, String name, String origin,
                    String storageType, BigDecimal weight, String weightUnit,
                    boolean isMandatoryAuction, BigDecimal price, int stockQuantity) {
+        this(seller, category, name, origin, storageType, weight, weightUnit,
+                isMandatoryAuction, price, stockQuantity, null, null);
+    }
+
+    // 2-1 상품 등록 생성자 (12개 파라미터)
+    public Product(Member seller, Category category, String name, String origin,
+                   String storageType, BigDecimal weight, String weightUnit,
+                   boolean isMandatoryAuction, BigDecimal price, int stockQuantity,
+                   LocalDateTime auctionDeadline, String description) {
         this.seller = seller;
         this.category = category;
         this.name = name;
@@ -70,13 +86,16 @@ public class Product extends BaseEntity {
         this.isMandatoryAuction = isMandatoryAuction;
         this.price = price;
         this.stockQuantity = stockQuantity;
+        this.auctionDeadline = auctionDeadline;
+        this.description = description;
         this.status = ProductStatus.PENDING_REVIEW;
     }
 
     // 2-5 상품 정보 수정 (null이 아닌 필드만 갱신)
     public void updateInfo(String name, String origin, String storageType,
                            BigDecimal weight, String weightUnit,
-                           BigDecimal price, Integer stockQuantity) {
+                           BigDecimal price, Integer stockQuantity,
+                           LocalDateTime auctionDeadline, String description) {
         if (name != null) this.name = name;
         if (origin != null) this.origin = origin;
         if (storageType != null) this.storageType = storageType;
@@ -84,6 +103,16 @@ public class Product extends BaseEntity {
         if (weightUnit != null) this.weightUnit = weightUnit;
         if (price != null) this.price = price;
         if (stockQuantity != null) this.stockQuantity = stockQuantity;
+        if (auctionDeadline != null) this.auctionDeadline = auctionDeadline;
+        if (description != null) this.description = description;
+    }
+
+    // [신규] 판매 상태 변경 (판매중/품절/판매중지)
+    public void changeStatus(ProductStatus status) {
+        if (status == ProductStatus.PENDING_REVIEW) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "판매자가 직접 설정할 수 없는 상태입니다.");
+        }
+        this.status = status;
     }
 
     // 4-1 주문 생성 시 즉시 차감 (v2.1 확정 정책)
@@ -145,6 +174,14 @@ public class Product extends BaseEntity {
 
     public int getStockQuantity() {
         return stockQuantity;
+    }
+
+    public LocalDateTime getAuctionDeadline() {
+        return auctionDeadline;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public ProductStatus getStatus() {

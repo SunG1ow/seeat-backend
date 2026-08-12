@@ -90,6 +90,29 @@ public class ProductRepositoryImpl implements ProductRepositoryCustom {
         return PageableExecutionUtilsWrapper.getPage(content, pageable, countQuery::fetchOne);
     }
 
+    // [신규] 판매자 상품 목록 조회 (상태 무관, 본인 등록 상품 전체)
+    @Override
+    public Page<Product> findBySeller(Long sellerId, Pageable pageable) {
+        QProduct product = QProduct.product;
+
+        BooleanExpression condition = product.seller.userId.eq(sellerId);
+
+        List<Product> content = queryFactory
+                .selectFrom(product)
+                .where(condition)
+                .orderBy(product.createdAt.desc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        JPAQuery<Long> countQuery = queryFactory
+                .select(product.count())
+                .from(product)
+                .where(condition);
+
+        return PageableExecutionUtilsWrapper.getPage(content, pageable, countQuery::fetchOne);
+    }
+
     private OrderSpecifier<?> resolveSort(String sort, QProduct product) {
         if ("PRICE_ASC".equals(sort)) {
             return product.price.asc();

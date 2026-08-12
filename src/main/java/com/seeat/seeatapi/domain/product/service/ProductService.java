@@ -3,6 +3,7 @@ package com.seeat.seeatapi.domain.product.service;
 import com.seeat.seeatapi.domain.member.entity.Member;
 import com.seeat.seeatapi.domain.product.dto.request.ProductCreateRequest;
 import com.seeat.seeatapi.domain.product.dto.request.ProductFaqCreateRequest;
+import com.seeat.seeatapi.domain.product.dto.request.ProductStatusUpdateRequest;
 import com.seeat.seeatapi.domain.product.dto.request.ProductUpdateRequest;
 import com.seeat.seeatapi.domain.product.dto.response.*;
 import com.seeat.seeatapi.domain.product.entity.*;
@@ -66,7 +67,8 @@ public class ProductService {
         Product product = new Product(
                 seller, category, request.name(), request.origin(), request.storageType(),
                 request.weight(), request.weightUnit(), isMandatoryAuction,
-                request.price(), request.stockQuantity()
+                request.price(), request.stockQuantity(),
+                request.auctionDeadline(), request.description()
         );
         productRepository.save(product);
 
@@ -84,6 +86,23 @@ public class ProductService {
         return categoryRepository.findByParentCategoryIsNull().stream()
                 .map(CategoryResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    // 2-3 상품 상세 조회
+    public ProductDetailResponse getProductDetail(Long productId) {
+        Product product = findProductOrThrow(productId);
+
+        List<ProductImageResponse> images = productImageRepository
+                .findByProductProductIdOrderBySortOrderAsc(productId).stream()
+                .map(img -> new ProductImageResponse(List.of(img.getImageUrl())))
+                .collect(Collectors.toList());
+
+        List<String> tags = productTagRepository.findAll().stream()
+                .filter(tag -> tag.getProduct().getProductId().equals(productId))
+                .map(ProductTag::getTagName)
+                .collect(Collectors.toList());
+
+        return ProductDetailResponse.from(product, images, tags);
     }
 
     // 2-3 필터 및 정렬 검색
@@ -104,6 +123,21 @@ public class ProductService {
                     .stream().findFirst().map(ProductImage::getImageUrl).orElse(null);
 
             return ProductSearchResponse.of(product, tags, thumbnailUrl);
+        });
+
+        return PageResponse.of(responsePage);
+    }
+
+    // [신규] 판매자 상품 목록 조회 (GET /api/v1/seller/products)
+    public PageResponse<ProductSellerListResponse> getSellerProducts(Long sellerId, Pageable pageable) {
+        Page<Product> page = productRepository.findBySeller(sellerId, pageable);
+
+        Page<ProductSellerListResponse> responsePage = page.map(product -> {
+            String thumbnailUrl = productImageRepository
+                    .findByProductProductIdOrderBySortOrderAsc(product.getProductId())
+                    .stream().findFirst().map(ProductImage::getImageUrl).orElse(null);
+
+            return ProductSellerListResponse.of(product, thumbnailUrl);
         });
 
         return PageResponse.of(responsePage);
@@ -132,7 +166,8 @@ public class ProductService {
 
         product.updateInfo(
                 request.name(), request.origin(), request.storageType(),
-                request.weight(), request.weightUnit(), request.price(), request.stockQuantity()
+                request.weight(), request.weightUnit(), request.price(), request.stockQuantity(),
+                request.auctionDeadline(), request.description()
         );
 
         if (request.tags() != null) {
@@ -141,6 +176,17 @@ public class ProductService {
         }
 
         return ProductUpdateResponse.from(product);
+    }
+
+    // [신규] 판매 상태 변경 (판매중/품절/판매중지)
+    @Transactional
+    public ProductStatusResponse updateStatus(Long sellerId, Long productId, ProductStatusUpdateRequest request) {
+        Product product = findProductOrThrow(productId);
+        validateOwnership(product, sellerId);
+
+        product.changeStatus(request.status());
+
+        return new ProductStatusResponse(product.getProductId(), product.getStatus());
     }
 
     // 2-6 상품 이미지 개별 추가

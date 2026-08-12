@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +50,9 @@ class ProductServiceTest {
         Category category = new Category("어류", null);
         ProductCreateRequest request = new ProductCreateRequest(
                 1L, "완도산 활전복", "완도", "냉장", BigDecimal.valueOf(1.5), "kg",
-                false, BigDecimal.valueOf(32000), 10, List.of("활어", "산지직송")
+                false, BigDecimal.valueOf(32000), 10,
+                LocalDateTime.now().plusDays(3), "완도산 활전복입니다.",
+                List.of("활어", "산지직송")
         );
         MultipartFile image = new MockMultipartFile("images", "test.jpg", "image/jpeg", "test-data".getBytes());
 
@@ -71,7 +74,10 @@ class ProductServiceTest {
         // given
         Member seller = new Member("seller@seeat.com", "encoded", MemberRole.SELLER, "판매자", "010-1111-2222");
         ProductCreateRequest request = new ProductCreateRequest(
-                1L, "완도산 활전복", "완도", "냉장", null, null, false, BigDecimal.valueOf(32000), 10, null
+                1L, "완도산 활전복", "완도", "냉장", null, null, false,
+                BigDecimal.valueOf(32000), 10,
+                null, null,
+                null
         );
         List<MultipartFile> sixImages = List.of(
                 new MockMultipartFile("images", "1.jpg", "image/jpeg", "a".getBytes()),
