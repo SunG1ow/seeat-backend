@@ -3,6 +3,7 @@ package com.seeat.seeatapi.domain.product.dto.response;
 import com.seeat.seeatapi.domain.product.entity.Product;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 // 2-3 필터 및 정렬 검색 응답 (목록 항목 하나)
@@ -14,7 +15,9 @@ public record ProductSearchResponse(
         BigDecimal weight,
         String weightUnit,
         List<String> tags,
-        String thumbnailUrl
+        String thumbnailUrl,
+        LocalDateTime auctionDeadline, // [추가] 위판 마감 시각
+        Integer stockQuantity          // [추가] 잔여 수량/무게
 ) {
     public static ProductSearchResponse of(Product product, List<String> tags, String thumbnailUrl) {
         return new ProductSearchResponse(
@@ -25,7 +28,9 @@ public record ProductSearchResponse(
                 product.getWeight(),
                 product.getWeightUnit(),
                 tags,
-                thumbnailUrl
+                thumbnailUrl,
+                product.getAuctionDeadline(),
+                product.getStockQuantity()
         );
     }
 }

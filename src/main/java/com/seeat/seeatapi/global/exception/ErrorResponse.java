@@ -1,10 +1,14 @@
 package com.seeat.seeatapi.global.exception;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.OffsetDateTime;
 
 public class ErrorResponse {
 
     private final boolean success = false;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private final OffsetDateTime timestamp;
     private final int status;
     private final String code;

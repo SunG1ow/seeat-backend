@@ -63,8 +63,8 @@ class ProductServiceTest {
         ProductCreateResponse response = productService.createProduct(seller, request, List.of(image));
 
         // then
-        assertThat(response.status()).isEqualTo("PENDING_REVIEW");
-        assertThat(response.imageUrls()).hasSize(1);
+        assertThat(response.getStatus()).isEqualTo("PENDING_REVIEW");
+        assertThat(response.getImageUrls()).hasSize(1);
         verify(productRepository).save(any());
     }
 
