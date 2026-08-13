@@ -2,7 +2,9 @@ package com.seeat.seeatapi.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import org.springdoc.core.models.GroupedOpenApi;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.Components;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -10,19 +12,24 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
-    public GroupedOpenApi publicApi() {
-        return GroupedOpenApi.builder()
-                .group("v1-definition")
-                .pathsToMatch("/api/**") // /api/로 시작하는 모든 요청 스캔
-                .build();
-    }
+    public OpenAPI openAPI() {
+        String jwtSchemeName = "jwtAuth";
 
-    @Bean
-    public OpenAPI seeatOpenAPI() {
+        SecurityRequirement securityRequirement = new SecurityRequirement().addList(jwtSchemeName);
+
+        Components components = new Components()
+                .addSecuritySchemes(jwtSchemeName, new SecurityScheme()
+                        .name(jwtSchemeName)
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("bearer")
+                        .bearerFormat("JWT"));
+
         return new OpenAPI()
                 .info(new Info()
                         .title("SEEAT API")
-                        .description("수산물 거래 플랫폼 SEEAT의 REST API 명세")
-                        .version("v2.1"));
+                        .description("수산물 거래 플랫폼 API")
+                        .version("v2.0.0"))
+                .addSecurityItem(securityRequirement)
+                .components(components);
     }
 }

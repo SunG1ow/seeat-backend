@@ -3,6 +3,7 @@ package com.seeat.seeatapi.domain.member.controller;
 import com.seeat.seeatapi.domain.member.dto.request.*;
 import com.seeat.seeatapi.domain.member.dto.response.AddressResponse;
 import com.seeat.seeatapi.domain.member.dto.response.MemberProfileResponse;
+import com.seeat.seeatapi.domain.member.dto.response.WithdrawResponse;
 import com.seeat.seeatapi.domain.member.service.MemberService;
 import com.seeat.seeatapi.global.response.ApiResponse;
 import com.seeat.seeatapi.global.security.CurrentMemberId;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -78,13 +80,12 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(null, "배송지가 삭제되었습니다."));
     }
 
-    // 5-4 회원 탈퇴
     @DeleteMapping
-    public ResponseEntity<ApiResponse<Object>> withdraw(
+    public ResponseEntity<ApiResponse<WithdrawResponse>> withdraw(
             @CurrentMemberId Long memberId,
             @Valid @RequestBody WithdrawRequest request
     ) {
-        memberService.withdraw(memberId, request);
-        return ResponseEntity.ok(ApiResponse.success(null, "회원 탈퇴가 완료되었습니다."));
+        WithdrawResponse response = memberService.withdraw(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "회원 탈퇴가 완료되었습니다."));
     }
 }

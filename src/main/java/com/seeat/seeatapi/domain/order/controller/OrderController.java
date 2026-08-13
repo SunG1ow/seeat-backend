@@ -21,15 +21,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.seeat.seeatapi.domain.order.dto.OrderStatusChangeRequest;
-import com.seeat.seeatapi.domain.order.entity.Order; // 또는 domain.order.domain.Order 등 실제 위치
-import com.seeat.seeatapi.domain.notification.service.NotificationService;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/orders")
 public class OrderController {
 
     private final OrderService orderService;
@@ -73,27 +69,10 @@ public class OrderController {
             @Valid @RequestBody PaymentRequest request
     ) {
         PaymentResponse response = paymentService.pay(orderId, request.paymentMethod(), request.pgTransactionId());
-        notificationService.notifyOrderConfirmed(orderService.getOrderEntity(orderId)); // 추가
+        notificationService.notifyOrderConfirmed(orderService.getOrderEntity(orderId));
         return ResponseEntity.ok(ApiResponse.success(response, "결제가 완료되었습니다."));
     }
-    // 4-3 주문 상태 실시간 변경 (관리자)
-    @PatchMapping("/api/v1/orders/{orderId}/status")
-    public ResponseEntity<ApiResponse<OrderStatusChangeResponse>> changeStatus(
-            @PathVariable Long orderId,
-            @Valid @RequestBody OrderStatusChangeRequest request
-    ) {
-        OrderStatusChangeResponse response = orderService.changeStatus(orderId, request);
 
-        Order order = orderService.getOrderEntity(orderId);
-        if ("SHIPPING".equals(request.status())) {
-            deliveryService.upsertTrackingInfo(order, request.carrier(), request.trackingNumber());
-            notificationService.notifyShippingStarted(order);
-        } else if ("DELIVERED".equals(request.status())) {
-            notificationService.notifyDeliveryCompleted(order);
-        }
-
-        return ResponseEntity.ok(ApiResponse.success(response, "주문 상태가 변경되었습니다."));
-    }
     // 4-4 주문 상태 이력 조회
     @GetMapping("/api/v1/orders/{orderId}/status-history")
     public ResponseEntity<ApiResponse<List<OrderStatusHistoryResponse>>> getStatusHistory(@PathVariable Long orderId) {
@@ -131,9 +110,4 @@ public class OrderController {
         OrderCancelResponse response = orderService.cancelByBuyer(buyerId, orderId, req);
         return ResponseEntity.ok(ApiResponse.success(response, "주문이 취소되었습니다."));
     }
-    // OrderService.java에 추가
-    public Order getOrderEntity(Long orderId) {
-        return orderService.getOrderEntity(orderId); // <-- 이렇게 변경
-    }
 }
-

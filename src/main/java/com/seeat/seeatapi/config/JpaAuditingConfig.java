@@ -1,4 +1,4 @@
-package com.seeat.seeatapi.global.config;
+package com.seeat.seeatapi.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

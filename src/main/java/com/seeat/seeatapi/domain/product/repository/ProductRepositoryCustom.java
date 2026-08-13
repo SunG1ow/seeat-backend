@@ -18,4 +18,7 @@ public interface ProductRepositoryCustom {
             String sort,
             Pageable pageable
     );
+
+    // [신규] 판매자 상품 목록 조회
+    Page<Product> findBySeller(Long sellerId, Pageable pageable);
 }

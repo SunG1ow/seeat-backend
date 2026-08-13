@@ -2,6 +2,7 @@ package com.seeat.seeatapi.domain.product.controller;
 
 import com.seeat.seeatapi.domain.product.dto.request.ProductCreateRequest;
 import com.seeat.seeatapi.domain.product.dto.request.ProductFaqCreateRequest;
+import com.seeat.seeatapi.domain.product.dto.request.ProductStatusUpdateRequest;
 import com.seeat.seeatapi.domain.product.dto.request.ProductUpdateRequest;
 import com.seeat.seeatapi.domain.product.dto.response.*;
 import com.seeat.seeatapi.domain.product.service.ProductService;
@@ -12,8 +13,12 @@ import com.seeat.seeatapi.global.exception.ErrorCode;
 import com.seeat.seeatapi.global.response.ApiResponse;
 import com.seeat.seeatapi.global.response.PageResponse;
 import com.seeat.seeatapi.global.security.CurrentMemberId;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -37,11 +42,15 @@ public class ProductController {
     }
 
     // 2-1 수산물 상품 등록
+    // [수정] images를 @RequestPart로 변경: @ParameterObject 적용 후 springdoc이 images 필드를
+    //         스키마에서 누락시키던 문제 해결. 실제 바인딩 동작은 동일(멀티파트 파일 파트).
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductCreateResponse>> createProduct(
             @CurrentMemberId Long sellerId,
-            @Valid @ModelAttribute ProductCreateRequest request,
-            @RequestParam List<MultipartFile> images
+            @Valid @ParameterObject @ModelAttribute ProductCreateRequest request,
+            @Parameter(description = "상품 이미지 목록 (최대 5장)",
+                    array = @ArraySchema(schema = @Schema(type = "string", format = "binary")))
+            @RequestPart("images") List<MultipartFile> images
     ) {
         Member seller = memberRepository.findById(sellerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
@@ -73,6 +82,15 @@ public class ProductController {
         return ResponseEntity.ok(
                 productService.search(category, origin, priceMin, priceMax, storageType, sort, pageable)
         );
+    }
+
+    // 2-3 상품 상세 조회
+    @SecurityRequirements
+    @GetMapping("/{productId}")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductDetail(
+            @PathVariable Long productId
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(productService.getProductDetail(productId)));
     }
 
     // 2-4 상품 문의 등록
@@ -109,12 +127,25 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(response, "상품 정보가 수정되었습니다."));
     }
 
+    // 판매 상태 변경 (판매중 / 품절 / 판매중지)
+    @PatchMapping("/{productId}/status")
+    public ResponseEntity<ApiResponse<ProductStatusResponse>> updateStatus(
+            @CurrentMemberId Long sellerId,
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductStatusUpdateRequest request
+    ) {
+        ProductStatusResponse response = productService.updateStatus(sellerId, productId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "판매 상태가 변경되었습니다."));
+    }
+
     // 2-6 상품 이미지 개별 추가
     @PostMapping(value = "/{productId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<ProductImageResponse>> addImages(
             @CurrentMemberId Long sellerId,
             @PathVariable Long productId,
-            @RequestParam List<MultipartFile> images
+            @Parameter(description = "추가할 상품 이미지 목록",
+                    array = @ArraySchema(schema = @Schema(type = "string", format = "binary")))
+            @RequestPart("images") List<MultipartFile> images
     ) {
         ProductImageResponse response = productService.addImages(sellerId, productId, images);
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface SellerBusinessInfoRepository extends JpaRepository<SellerBusinessInfo, Long> {
     Optional<SellerBusinessInfo> findByUserId(Long userId);
+    Optional<SellerBusinessInfo> findByBusinessRegistrationNumber(String businessRegistrationNumber);
 }

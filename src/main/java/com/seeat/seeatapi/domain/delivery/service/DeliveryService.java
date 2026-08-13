@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,7 +27,6 @@ public class DeliveryService {
         this.orderItemRepository = orderItemRepository;
     }
 
-    // 4-3에서 SHIPPING 전환 시 호출 (carrier/trackingNumber upsert)
     @Transactional
     public void upsertTrackingInfo(Order order, String carrier, String trackingNumber) {
         Delivery delivery = deliveryRepository.findByOrderOrderId(order.getOrderId())
@@ -35,8 +36,14 @@ public class DeliveryService {
     }
 
     // 4-6 주문 내역 및 배송 추적
-    public PageResponse<DeliveryTrackingResponse> getMyDeliveries(Long buyerId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        Page<DeliveryTrackingResponse> page = deliveryRepository.findByBuyerAndPeriod(buyerId, startDate, endDate, pageable)
+    public PageResponse<DeliveryTrackingResponse> getMyDeliveries(
+            Long buyerId, LocalDate startDate, LocalDate endDate, Pageable pageable
+    ) {
+        LocalDateTime startDateTime = startDate != null ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = endDate != null ? LocalDateTime.of(endDate, LocalTime.MAX) : null;
+
+        Page<DeliveryTrackingResponse> page = deliveryRepository
+                .findByBuyerAndPeriod(buyerId, startDateTime, endDateTime, pageable)
                 .map(delivery -> new DeliveryTrackingResponse(
                         delivery.getOrder().getOrderId(),
                         orderItemRepository.findByOrderOrderId(delivery.getOrder().getOrderId()).stream()

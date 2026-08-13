@@ -1,6 +1,7 @@
 package com.seeat.seeatapi.global.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.seeat.seeatapi.global.exception.ErrorCode;
 import com.seeat.seeatapi.global.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +16,9 @@ import java.io.IOException;
 @Component
 public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // [수정] JavaTimeModule 미등록으로 ErrorResponse.timestamp(OffsetDateTime) 직렬화 시
+    //         InvalidDefinitionException 발생하던 버그 수정
+    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Override
     public void handle(
