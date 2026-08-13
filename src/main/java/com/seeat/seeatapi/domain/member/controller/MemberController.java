@@ -80,10 +80,12 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(null, "배송지가 삭제되었습니다."));
     }
 
-    // 5-4 회원 탈퇴
-    @PostMapping("/withdraw") // 또는 @DeleteMapping
-    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal Long memberId, @RequestBody WithdrawRequest request) {
-        memberService.withdraw(memberId, request); // 변수에 담지 않고 메서드만 실행
-        return ResponseEntity.ok().build(); // 또는 ResponseEntity.noContent().build();
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<WithdrawResponse>> withdraw(
+            @CurrentMemberId Long memberId,
+            @Valid @RequestBody WithdrawRequest request
+    ) {
+        WithdrawResponse response = memberService.withdraw(memberId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "회원 탈퇴가 완료되었습니다."));
     }
 }

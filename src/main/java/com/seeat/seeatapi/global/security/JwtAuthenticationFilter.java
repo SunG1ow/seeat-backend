@@ -1,5 +1,6 @@
 package com.seeat.seeatapi.global.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import com.seeat.seeatapi.global.exception.ErrorCode;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -32,14 +36,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Long userId = jwtTokenProvider.getUserId(token);
-            String role = jwtTokenProvider.getRole(token);
+        if (token != null) {
+            try {
+                if (jwtTokenProvider.validateToken(token)) {
+                    Long userId = jwtTokenProvider.getUserId(token);
+                    String role = jwtTokenProvider.getRole(token);
 
-            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-            var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                    // [수정] JwtTokenProvider.createToken()이 이미 "ROLE_" 접두사를 붙여서
+                    //         토큰에 저장하므로, 여기서 다시 붙이면 "ROLE_ROLE_SELLER"처럼
+                    //         이중 접두사가 되어 SecurityConfig의 hasRole()과 절대 일치하지 않던 버그 수정
+                    var authorities = List.of(new SimpleGrantedAuthority(role));
+                    var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (ExpiredJwtException e) {
+                request.setAttribute("errorCode", ErrorCode.TOKEN_EXPIRED);
+            } catch (JwtException | IllegalArgumentException e) {
+                request.setAttribute("errorCode", ErrorCode.INVALID_TOKEN);
+            }
         }
 
         filterChain.doFilter(request, response);

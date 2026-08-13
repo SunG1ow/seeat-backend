@@ -1,20 +1,28 @@
 package com.seeat.seeatapi.domain.product.dto.response;
 
 import com.seeat.seeatapi.domain.product.entity.Product;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-// 2-1 상품 등록 응답
-public record ProductCreateResponse(
-        Long productId,
-        String status,
-        List<String> imageUrls
-) {
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ProductCreateResponse {
+
+    private Long productId;
+    private String status;
+    private List<String> imageUrls;
+
     public static ProductCreateResponse of(Product product, List<String> imageUrls) {
-        return new ProductCreateResponse(
-                product.getProductId(),
-                product.getStatus().name(),
-                imageUrls
-        );
+        return ProductCreateResponse.builder()
+                .productId(product.getProductId())
+                .status(product.getStatus().name())
+                .imageUrls(imageUrls)
+                .build();
     }
 }

@@ -97,6 +97,13 @@ public class AuthService {
         Member member = memberRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
 
+        // 사업자등록번호 중복 검사 (본인이 재신청하는 경우는 제외)
+        sellerBusinessInfoRepository.findByBusinessRegistrationNumber(request.businessRegistrationNumber())
+                .filter(info -> !info.getUserId().equals(userId))
+                .ifPresent(info -> {
+                    throw new BusinessException(ErrorCode.BUSINESS_NUMBER_ALREADY_EXISTS);
+                });
+
         LocalDate openingDate = LocalDate.parse(request.openingDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
 
         SellerBusinessInfo businessInfo = sellerBusinessInfoRepository.findByUserId(userId)
@@ -108,7 +115,6 @@ public class AuthService {
                         member, request.businessRegistrationNumber(), request.representativeName(), openingDate
                 ));
 
-        // TODO: 국세청 API 실제 연동 (향후 확장). 지금은 Mock 처리.
         boolean verified = mockNtsVerification(request.businessRegistrationNumber());
 
         if (verified) {

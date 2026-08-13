@@ -1,4 +1,4 @@
-package com.seeat.seeatapi.global.config;
+package com.seeat.seeatapi.config;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;

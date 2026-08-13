@@ -1,5 +1,8 @@
 package com.seeat.seeatapi.global.response;
 
+import lombok.Getter;
+
+@Getter
 public class ApiResponse<T> {
 
     private final boolean success;
